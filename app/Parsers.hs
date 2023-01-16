@@ -69,31 +69,32 @@ commitParser = do
       newline
   string "author"
   spaces
-  authorName <- manyTill anyChar (char '<')
-  authorEmail <- manyTill anyChar (char '>')
-  spaces
-  authorTime <- read <$> many1 digit
-  spaces
-  authorTimezone <- manyTill anyChar newline
+  author <- parseUser
   string "committer"
   spaces
-  committerName <- manyTill anyChar (char '<')
-  committerEmail <- manyTill anyChar (char '>')
-  spaces
-  committerTime <- read <$> many1 digit
-  spaces
-  committerTimezone <- manyTill anyChar newline
+  committer <- parseUser
   newline
   message <- many1 anyChar
   return
     ( Commit
         treeHash
         parents
-        (UserInfo authorName authorEmail authorTime authorTimezone)
-        (UserInfo committerName committerEmail committerTime committerTimezone)
+        author
+        committer
         message
     )
 
+parseUser :: ParsecT String u Data.Functor.Identity.Identity UserInfo
+parseUser = do
+  authorName <- manyTill anyChar (char '<')
+  authorEmail <- manyTill anyChar (char '>')
+  spaces
+  authorTime <- read <$> many1 digit
+  spaces
+  authorTimezone <- manyTill anyChar newline
+  return (UserInfo authorName authorEmail authorTime authorTimezone)
+
+parseHash :: ParsecT String u Data.Functor.Identity.Identity [Char]
 parseHash = many1 (letter <|> digit)
 
 match :: Monad m => String -> a -> ParsecT String u m a
