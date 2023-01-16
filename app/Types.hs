@@ -8,6 +8,7 @@ module Types
     Tree,
     UserInfo (..),
     Commit (..),
+    RepoSummary,
   )
 where
 

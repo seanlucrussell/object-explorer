@@ -12,6 +12,7 @@ import Text.Parsec
     many1,
     manyTill,
     newline,
+    sepEndBy,
     sepEndBy1,
     space,
     spaces,
@@ -60,7 +61,7 @@ commitParser = do
   treeHash <- parseHash
   newline
   parents <-
-    sepEndBy1
+    sepEndBy
       ( do
           string "parent"
           space
