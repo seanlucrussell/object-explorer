@@ -3,15 +3,18 @@ module Parsers (parseObject, repoSummaryParser) where
 import Data.Functor (($>))
 import qualified Data.Functor.Identity
 import Text.Parsec
-  ( ParsecT,
+  ( Parsec,
     anyChar,
     char,
     choice,
     digit,
+    endOfLine,
     letter,
+    many,
     many1,
     manyTill,
     newline,
+    noneOf,
     sepEndBy,
     sepEndBy1,
     space,
@@ -30,7 +33,7 @@ import Types
     UserInfo (UserInfo),
   )
 
-repoSummaryParser :: ParsecT String u Data.Functor.Identity.Identity [ObjectSummary]
+repoSummaryParser :: Parsec String u [ObjectSummary]
 repoSummaryParser = sepEndBy1 objectSummaryParser newline
   where
     objectSummaryParser = do
@@ -41,7 +44,7 @@ repoSummaryParser = sepEndBy1 objectSummaryParser newline
       byteCount <- read <$> many1 digit
       return (ObjectSummary hash objectType byteCount)
 
-treeParser :: ParsecT String u Data.Functor.Identity.Identity [TreeEntry]
+treeParser :: Parsec String u [TreeEntry]
 treeParser = sepEndBy1 treeEntryParser newline
   where
     treeEntryParser = do
@@ -51,10 +54,10 @@ treeParser = sepEndBy1 treeEntryParser newline
       spaces
       hash <- parseHash
       spaces
-      fileName <- manyTill anyChar newline
+      fileName <- many (noneOf "\n")
       return (TreeEntry perms objectType hash fileName)
 
-commitParser :: ParsecT String u Data.Functor.Identity.Identity Commit
+commitParser :: Parsec String u Commit
 commitParser = do
   string "tree"
   space
@@ -85,7 +88,7 @@ commitParser = do
         message
     )
 
-parseUser :: ParsecT String u Data.Functor.Identity.Identity UserInfo
+parseUser :: Parsec String u UserInfo
 parseUser = do
   authorName <- manyTill anyChar (char '<')
   authorEmail <- manyTill anyChar (char '>')
@@ -95,16 +98,17 @@ parseUser = do
   authorTimezone <- manyTill anyChar newline
   return (UserInfo authorName authorEmail authorTime authorTimezone)
 
-parseHash :: ParsecT String u Data.Functor.Identity.Identity [Char]
+parseHash :: Parsec String u [Char]
 parseHash = many1 (letter <|> digit)
 
-match :: Monad m => String -> a -> ParsecT String u m a
+match :: String -> a -> Parsec String u a
 match a b = try (string a $> b)
 
-objectTypeParser :: Monad m => ParsecT String u m ObjectType
+objectTypeParser :: Parsec String u ObjectType
 objectTypeParser = choice [match "tree" TreeType, match "blob" BlobType, match "commit" CommitType]
 
-permsParser :: Monad m => ParsecT String u m Perms
+permsParser :: Parsec String u Perms
 permsParser = choice [match "120000" SymLinkPerms, match "040000" DirPerms, match "100755" ExecPerms, match "100644" ReadPerms]
 
+parseObject :: Parsec String u Object
 parseObject = try (Tree <$> treeParser) <|> try (CommitObject <$> commitParser) <|> (Blob <$> many1 anyChar)

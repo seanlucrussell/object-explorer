@@ -11,13 +11,13 @@ renderSummary :: RepoSummary -> Html
 renderSummary s = docTypeHtml $ do
   H.head $ do
     H.title "overview"
-  body $ ul $ mapM_ (li . renderObjectSummary) s
+  body $ table $ mapM_ (tr . renderObjectSummary) s
 
 renderObjectSummary :: ObjectSummary -> Html
 renderObjectSummary (ObjectSummary ref objectType byteCount) = do
-  renderObjectType objectType
-  renderReference ref
-  toHtml byteCount
+  td $ renderObjectType objectType
+  td $ renderReference ref
+  td $ toHtml byteCount
 
 x :: Reference
 x = "a"
@@ -30,11 +30,11 @@ renderObject ref o = docTypeHtml $ do
     h1 (toHtml ("Object " ++ ref))
     case o of
       Blob s -> pre (toHtml s)
-      Tree tes -> renderTreeEntries tes
+      Tree tes -> table $ renderTreeEntries tes
       CommitObject com -> renderCommit com
 
 renderTreeEntries :: [TreeEntry] -> Html
-renderTreeEntries = mapM_ renderTreeEntry
+renderTreeEntries = mapM_ (tr . renderTreeEntry)
 
 renderPerms :: Perms -> Html
 renderPerms ReadPerms = "100644"
@@ -49,10 +49,10 @@ renderObjectType CommitType = "commit"
 
 renderTreeEntry :: TreeEntry -> Html
 renderTreeEntry (TreeEntry perms objectType reference filename) = do
-  i (renderPerms perms)
-  renderObjectType objectType
-  renderReference reference
-  em (toHtml filename)
+  td $ i (renderPerms perms)
+  td $ renderObjectType objectType
+  td $ renderReference reference
+  td $ em (toHtml filename)
 
 renderReference :: Reference -> Html
 renderReference r = a ! href (toValue (r ++ ".html")) $ toHtml r

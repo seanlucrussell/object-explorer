@@ -31,7 +31,8 @@ printObjectFromSummary s = do
   o <- grabObject s
   case o of
     Left pe -> putStrLn ("Failed to read " ++ ref)
-    Right ob -> writeFile (output ++ ref ++ ".html") (renderHtml (renderObject ref ob))
+    Right ob ->
+      writeFile (output ++ ref ++ ".html") (renderHtml (renderObject ref ob))
 
 main :: IO ()
 main = do
@@ -45,8 +46,5 @@ main = do
       mapM_ printObjectFromSummary summary
 
 -- tooltips: match output of git commands as closely as possible except for header info, add tooltips to provide more detail.
--- title is hash
--- Object <hash>
--- Preformatted for blob
 -- validate repo exists/git is installed
 -- don't worry about files being well formed, just print error for hash (parse failed, content of body) and continue on
