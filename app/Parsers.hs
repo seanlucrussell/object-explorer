@@ -90,7 +90,7 @@ commitParser = do
 
 parseUser :: Parsec String u UserInfo
 parseUser = do
-  authorName <- manyTill anyChar (char '<')
+  authorName <- manyTill anyChar (try (string " <"))
   authorEmail <- manyTill anyChar (char '>')
   spaces
   authorTime <- read <$> many1 digit

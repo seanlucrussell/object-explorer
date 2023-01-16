@@ -2,16 +2,28 @@
 
 module Renderers (renderSummary, renderObject) where
 
-import System.Posix.Internals (c_access, c_ftruncate, fileType)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
 import Types (Commit (..), Object (..), ObjectSummary (ObjectSummary, objectType), ObjectType (..), Perms (..), Reference, RepoSummary, TreeEntry (TreeEntry), UserInfo (..))
 
-renderSummary :: RepoSummary -> Html
-renderSummary s = docTypeHtml $ do
+basicPage :: String -> Html -> Html
+basicPage title content = docTypeHtml $ do
   H.head $ do
-    H.title "overview"
-  body $ table $ mapM_ (tr . renderObjectSummary) s
+    H.title (toHtml title)
+    link ! rel "stylesheet" ! href "https://unpkg.com/@picocss/pico@latest/css/pico.classless.min.css"
+  body $
+    main $ do
+      content
+
+renderSummary :: RepoSummary -> Html
+renderSummary s = basicPage "overview" $ do
+  h2 "Repo overview"
+  table $ do
+    tr $ do
+      th "Object type"
+      th "Object id"
+      th "Byte count"
+    mapM_ (tr . renderObjectSummary) s
 
 renderObjectSummary :: ObjectSummary -> Html
 renderObjectSummary (ObjectSummary ref objectType byteCount) = do
@@ -23,15 +35,22 @@ x :: Reference
 x = "a"
 
 renderObject :: Reference -> Object -> Html
-renderObject ref o = docTypeHtml $ do
-  H.head $ do
-    H.title (toHtml ref)
-  body $ do
-    h1 (toHtml ("Object " ++ ref))
-    case o of
-      Blob s -> pre (toHtml s)
-      Tree tes -> table $ renderTreeEntries tes
-      CommitObject com -> renderCommit com
+renderObject ref o = basicPage ref $ do
+  h6 $ a "Back to overview" ! href "overview.html"
+  case o of
+    Blob s -> h3 (toHtml ("Blob object " ++ ref)) >> pre (toHtml s)
+    Tree tes ->
+      h3 (toHtml ("Tree object " ++ ref))
+        >> table
+          ( do
+              tr $ do
+                th "Permissions"
+                th "Object type"
+                th "Object id"
+                th "File name"
+              renderTreeEntries tes
+          )
+    CommitObject com -> h3 (toHtml ("Commit object " ++ ref)) >> renderCommit com
 
 renderTreeEntries :: [TreeEntry] -> Html
 renderTreeEntries = mapM_ (tr . renderTreeEntry)
@@ -40,7 +59,7 @@ renderPerms :: Perms -> Html
 renderPerms ReadPerms = "100644"
 renderPerms ExecPerms = "100755"
 renderPerms SymLinkPerms = "120000"
-renderPerms DirPerms = "100644"
+renderPerms DirPerms = "040000"
 
 renderObjectType :: ObjectType -> Html
 renderObjectType BlobType = "blob"
@@ -59,20 +78,18 @@ renderReference r = a ! href (toValue (r ++ ".html")) $ toHtml r
 
 renderCommit :: Commit -> Html
 renderCommit (Commit tree parents author committer message) = do
-  "Tree: "
-  renderReference tree
-  "Parents: "
-  ul $ mapM_ (li . renderReference) parents
-  "Author: "
-  renderUser author
-  "Committer: "
-  renderUser committer
-  "Commit message: "
-  p (toHtml message)
+  p $ i "Tree: " >> renderReference tree
+  mapM_ (\parent -> p $ i "Parent: " >> renderReference parent) parents
+  p $ i "Author: " >> renderUser author
+  p $ i "Committer: " >> renderUser committer
+  p $ i "Commit message: " >> toHtml message
 
 renderUser :: UserInfo -> Html
-renderUser (UserInfo name email date timezone) = do
-  toHtml name
-  i (toHtml email)
-  toHtml date
-  toHtml timezone
+renderUser (UserInfo name email date timezone) =
+  b (toHtml name)
+    >> ", "
+    >> i (toHtml email)
+    >> ", "
+    >> toHtml date
+    >> ", "
+    >> toHtml timezone
