@@ -44,7 +44,7 @@ main = do
       writeFile (output ++ "overview.html") (renderHtml (renderSummary summary))
       mapM_ printObjectFromSummary summary
 
--- tooltips
+-- tooltips: match output of git commands as closely as possible except for header info, add tooltips to provide more detail.
 -- title is hash
 -- Object <hash>
 -- Preformatted for blob

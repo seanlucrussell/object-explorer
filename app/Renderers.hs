@@ -5,14 +5,19 @@ module Renderers (renderSummary, renderObject) where
 import System.Posix.Internals (c_access, c_ftruncate, fileType)
 import Text.Blaze.Html5 as H
 import Text.Blaze.Html5.Attributes as A
-import Types (Commit (..), Object (..), ObjectSummary (objectType), ObjectType (..), Perms (..), Reference, RepoSummary, TreeEntry (TreeEntry), UserInfo (..))
+import Types (Commit (..), Object (..), ObjectSummary (ObjectSummary, objectType), ObjectType (..), Perms (..), Reference, RepoSummary, TreeEntry (TreeEntry), UserInfo (..))
 
 renderSummary :: RepoSummary -> Html
 renderSummary s = docTypeHtml $ do
   H.head $ do
     H.title "overview"
-  body $ do
-    p "body"
+  body $ ul $ mapM_ (li . renderObjectSummary) s
+
+renderObjectSummary :: ObjectSummary -> Html
+renderObjectSummary (ObjectSummary ref objectType byteCount) = do
+  renderObjectType objectType
+  renderReference ref
+  toHtml byteCount
 
 x :: Reference
 x = "a"
