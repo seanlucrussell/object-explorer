@@ -1,6 +1,9 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Main where
 
 import Control.Exception (Exception, IOException, catch)
+import Language.Haskell.TH (Q, runIO, stringE)
 import Parsers (parseObject, repoSummaryParser)
 import Renderers (renderObject, renderSummary)
 import System.Environment
@@ -16,7 +19,15 @@ catObject path hash = readProcess "git" ["-C", path, "cat-file", "-p", hash] []
 listAllObjects :: String -> IO String
 listAllObjects path = readProcess "git" ["-C", path, "cat-file", "--batch-check", "--batch-all-objects"] []
 
+output :: [Char]
 output = "./generated/"
+
+style :: [Char]
+style =
+  $( do
+       s <- runIO (readFile "resources/style.css")
+       stringE s
+   )
 
 grabObject :: String -> ObjectSummary -> IO (Either ParseError Object)
 grabObject repo o = do
@@ -56,6 +67,7 @@ main = do
         Right summary -> do
           print summary
           writeFile (output ++ "overview.html") (renderHtml (renderSummary summary))
+          writeFile (output ++ "style.css") style
           mapM_ (printObjectFromSummary repo) summary
 
 -- tooltips: match output of git commands as closely as possible except for header info, add tooltips to provide more detail.

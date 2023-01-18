@@ -10,7 +10,7 @@ basicPage :: String -> Html -> Html
 basicPage title content = docTypeHtml $ do
   H.head $ do
     H.title (toHtml title)
-    link ! rel "stylesheet" ! href "https://unpkg.com/@picocss/pico@latest/css/pico.classless.min.css"
+    link ! rel "stylesheet" ! href "style.css"
   body $
     main $ do
       content
@@ -30,9 +30,6 @@ renderObjectSummary (ObjectSummary ref objectType byteCount) = do
   td $ renderObjectType objectType
   td $ renderReference ref
   td $ toHtml byteCount
-
-x :: Reference
-x = "a"
 
 renderObject :: Reference -> Object -> Html
 renderObject ref o = basicPage ref $ do
