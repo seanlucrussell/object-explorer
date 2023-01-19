@@ -3,8 +3,32 @@
 module Renderers (renderSummary, renderObject) where
 
 import Text.Blaze.Html5 as H
-import Text.Blaze.Html5.Attributes as A
-import Types (Commit (..), Object (..), ObjectSummary (ObjectSummary, objectType), ObjectType (..), Perms (..), Reference, RepoSummary, TreeEntry (TreeEntry), UserInfo (..))
+  ( Html,
+    ToValue (toValue),
+    a,
+    b,
+    body,
+    docTypeHtml,
+    em,
+    h2,
+    h3,
+    h6,
+    head,
+    i,
+    link,
+    main,
+    p,
+    pre,
+    table,
+    td,
+    th,
+    title,
+    toHtml,
+    tr,
+    (!),
+  )
+import Text.Blaze.Html5.Attributes as A (href, rel)
+import Types (Branch (..), Commit (..), Object (..), ObjectSummary (ObjectSummary, objectType), ObjectType (..), Perms (..), Reference, RepoSummary (..), TreeEntry (TreeEntry), UserInfo (..))
 
 basicPage :: String -> Html -> Html
 basicPage title content = docTypeHtml $ do
@@ -15,15 +39,24 @@ basicPage title content = docTypeHtml $ do
     main $ do
       content
 
+renderBranch :: Branch -> Html
+renderBranch Branch {Types.name = n, reference = r} = p $ do
+  "Branch "
+  i $ toHtml n
+  " currently points to "
+  renderReference r
+
 renderSummary :: RepoSummary -> Html
 renderSummary s = basicPage "overview" $ do
   h2 "Repo overview"
+  p $ i "HEAD" >> " currently points to " >> renderReference (Types.head s)
+  mapM_ renderBranch (branches s)
   table $ do
     tr $ do
       th "Object type"
       th "Object id"
       th "Byte count"
-    mapM_ (tr . renderObjectSummary) s
+    mapM_ (tr . renderObjectSummary) (objectList s)
 
 renderObjectSummary :: ObjectSummary -> Html
 renderObjectSummary (ObjectSummary ref objectType byteCount) = do

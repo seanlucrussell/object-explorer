@@ -1,4 +1,4 @@
-module Parsers (parseObject, repoSummaryParser) where
+module Parsers (parseObject, repoSummaryParser, branchesParser) where
 
 import Data.Functor (($>))
 import qualified Data.Functor.Identity
@@ -24,7 +24,8 @@ import Text.Parsec
     (<|>),
   )
 import Types
-  ( Commit (Commit),
+  ( Branch (..),
+    Commit (Commit),
     Object (Blob, CommitObject, Tree),
     ObjectSummary (ObjectSummary),
     ObjectType (..),
@@ -32,6 +33,15 @@ import Types
     TreeEntry (TreeEntry),
     UserInfo (UserInfo),
   )
+
+branchesParser :: Parsec String u [Branch]
+branchesParser = sepEndBy branchParser newline
+  where
+    branchParser = do
+      ref <- many1 (noneOf [' '])
+      space
+      branchName <- many (noneOf "\n")
+      return Branch {reference = ref, name = branchName}
 
 repoSummaryParser :: Parsec String u [ObjectSummary]
 repoSummaryParser = sepEndBy1 objectSummaryParser newline

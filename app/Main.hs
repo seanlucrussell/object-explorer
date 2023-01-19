@@ -4,14 +4,14 @@ module Main where
 
 import Control.Exception (Exception, IOException, catch)
 import Language.Haskell.TH (Q, runIO, stringE)
-import Parsers (parseObject, repoSummaryParser)
+import Parsers (branchesParser, parseObject, repoSummaryParser)
 import Renderers (renderObject, renderSummary)
-import System.Environment
+import System.Environment (getArgs)
 import System.Exit (exitFailure)
-import System.Process (readProcess)
+import System.Process (createProcess, proc, readProcess)
 import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Parsec (ParseError, parse)
-import Types (Object, ObjectSummary (hash))
+import Types (Object, ObjectSummary (hash), RepoSummary (RepoSummary))
 
 catObject :: String -> String -> IO String
 catObject path hash = readProcess "git" ["-C", path, "cat-file", "-p", hash] []
@@ -20,7 +20,7 @@ listAllObjects :: String -> IO String
 listAllObjects path = readProcess "git" ["-C", path, "cat-file", "--batch-check", "--batch-all-objects"] []
 
 output :: [Char]
-output = "./generated/"
+output = "generated/"
 
 style :: [Char]
 style =
@@ -52,6 +52,7 @@ main = do
       exitFailure
     else do
       let repo = head args
+      createProcess (proc "mkdir" [output])
       s <-
         catch
           (listAllObjects repo)
@@ -61,16 +62,18 @@ main = do
                   exitFailure
               )
           )
-      let repoSummary = parse repoSummaryParser "" s
-      case repoSummary of
+      head <- readProcess "git" ["rev-parse", "HEAD"] []
+      branchesRaw <- readProcess "git" ["branch", "--format=%(objectname) %(refname:lstrip=-1)"] []
+      case ( do
+               summaryParse <- parse repoSummaryParser "" s
+               branchesParse <- parse branchesParser "" branchesRaw
+               return (summaryParse, branchesParse)
+           ) of
         Left _ -> putStrLn "Error generating list of all objects in repo"
-        Right summary -> do
-          print summary
-          writeFile (output ++ "overview.html") (renderHtml (renderSummary summary))
+        Right (summary, branches) -> do
+          let fullSummary = RepoSummary summary head branches
+          putStrLn ("Generating git object overview for repo \"" ++ repo ++ "\" in \"" ++ output ++ "\"")
+          writeFile (output ++ "overview.html") (renderHtml (renderSummary fullSummary))
           writeFile (output ++ "style.css") style
           mapM_ (printObjectFromSummary repo) summary
-
--- tooltips: match output of git commands as closely as possible except for header info, add tooltips to provide more detail.
-
--- choose generated path
--- don't worry about files being well formed, just print error for hash (parse failed, content of body) and continue on
+          putStrLn ("Generation complete. Look at \"" ++ output ++ "overview.html\" for the overview of the repo.")

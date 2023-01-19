@@ -8,7 +8,8 @@ module Types
     Tree,
     UserInfo (..),
     Commit (..),
-    RepoSummary,
+    RepoSummary (..),
+    Branch (..),
   )
 where
 
@@ -27,7 +28,9 @@ data ObjectSummary = ObjectSummary
   }
   deriving (Show)
 
-type RepoSummary = [ObjectSummary]
+data Branch = Branch {name :: String, reference :: Reference}
+
+data RepoSummary = RepoSummary {objectList :: [ObjectSummary], head :: Reference, branches :: [Branch]}
 
 -- symlink is 120000
 -- dir is 040000
