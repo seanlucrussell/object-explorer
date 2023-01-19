@@ -16,6 +16,9 @@ version:            0.1.0.0
 author:             Sean Russell
 maintainer:         slrussel@rams.colostate.edu
 
+-- This gets built into the final app
+extra-source-files: resources/style.css
+
 -- A copyright notice.
 -- copyright:
 -- category:
