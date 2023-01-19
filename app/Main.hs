@@ -52,7 +52,7 @@ main = do
       exitFailure
     else do
       let repo = head args
-      createProcess (proc "mkdir" [output])
+      createProcess (proc "mkdir" ["-p", output])
       s <-
         catch
           (listAllObjects repo)
