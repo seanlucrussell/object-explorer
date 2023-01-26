@@ -8,6 +8,7 @@ import Text.Blaze.Html5 as H
     a,
     b,
     body,
+    div,
     docTypeHtml,
     em,
     h2,
@@ -15,10 +16,12 @@ import Text.Blaze.Html5 as H
     h6,
     head,
     i,
+    img,
     link,
     main,
     p,
     pre,
+    stringTag,
     table,
     td,
     th,
@@ -27,7 +30,8 @@ import Text.Blaze.Html5 as H
     tr,
     (!),
   )
-import Text.Blaze.Html5.Attributes as A (href, rel)
+import Text.Blaze.Html5.Attributes as A (class_, href, rel, src)
+import Text.Blaze.XHtml5 (figure)
 import Types (Branch (..), Commit (..), Object (..), ObjectSummary (ObjectSummary, objectType), ObjectType (..), Perms (..), Reference, RepoSummary (..), TreeEntry (TreeEntry), UserInfo (..))
 
 basicPage :: String -> Html -> Html
@@ -35,9 +39,7 @@ basicPage title content = docTypeHtml $ do
   H.head $ do
     H.title (toHtml title)
     link ! rel "stylesheet" ! href "style.css"
-  body $
-    main $ do
-      content
+  body $ main content
 
 renderBranch :: Branch -> Html
 renderBranch Branch {Types.name = n, reference = r} = p $ do
@@ -51,12 +53,15 @@ renderSummary s = basicPage "overview" $ do
   h2 "Repo overview"
   p $ i "HEAD" >> " currently points to " >> renderReference (Types.head s)
   mapM_ renderBranch (branches s)
-  table $ do
-    tr $ do
-      th "Object type"
-      th "Object id"
-      th "Byte count"
-    mapM_ (tr . renderObjectSummary) (objectList s)
+  p "Current object graph visualized below. Branches are in yellow, commits are in blue, trees in green, and blobs in white."
+  p $ img ! src "graph.png"
+  figure $
+    table $ do
+      tr $ do
+        th "Object type"
+        th "Object id"
+        th "Byte count"
+      mapM_ (tr . renderObjectSummary) (objectList s)
 
 renderObjectSummary :: ObjectSummary -> Html
 renderObjectSummary (ObjectSummary ref objectType byteCount) = do
@@ -71,14 +76,16 @@ renderObject ref o = basicPage ref $ do
     Blob s -> h3 (toHtml ("Blob object " ++ ref)) >> pre (toHtml s)
     Tree tes ->
       h3 (toHtml ("Tree object " ++ ref))
-        >> table
-          ( do
-              tr $ do
-                th "Permissions"
-                th "Object type"
-                th "Object id"
-                th "File name"
-              renderTreeEntries tes
+        >> figure
+          ( table
+              ( do
+                  tr $ do
+                    th "Permissions"
+                    th "Object type"
+                    th "Object id"
+                    th "File name"
+                  renderTreeEntries tes
+              )
           )
     CommitObject com -> h3 (toHtml ("Commit object " ++ ref)) >> renderCommit com
 

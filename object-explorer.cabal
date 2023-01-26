@@ -28,7 +28,7 @@ executable object-explorer
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules: Types, Parsers, Renderers
+    other-modules: Types, Parsers, Renderers, Graph
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -37,5 +37,6 @@ executable object-explorer
                       parsec,
                       blaze-html,
                       template-haskell,
+                      graphviz, fgl, text, containers
     hs-source-dirs:   app
     default-language: Haskell2010

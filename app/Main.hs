@@ -3,6 +3,7 @@
 module Main where
 
 import Control.Exception (Exception, IOException, catch)
+import Graph
 import Language.Haskell.TH (Q, runIO, stringE)
 import Parsers (branchesParser, parseObject, repoSummaryParser)
 import Renderers (renderObject, renderSummary)
@@ -11,7 +12,7 @@ import System.Exit (exitFailure)
 import System.Process (createProcess, proc, readProcess)
 import Text.Blaze.Html.Renderer.String (renderHtml)
 import Text.Parsec (ParseError, parse)
-import Types (Object, ObjectSummary (hash), RepoSummary (RepoSummary))
+import Types (Object, ObjectSummary (hash, objectType), Reference, RepoSummary (RepoSummary, objectList))
 
 catObject :: String -> String -> IO String
 catObject path hash = readProcess "git" ["-C", path, "cat-file", "-p", hash] []
@@ -43,6 +44,18 @@ printObjectFromSummary repo s = do
     Right ob ->
       writeFile (output ++ ref ++ ".html") (renderHtml (renderObject ref ob))
 
+genObject :: String -> Reference -> IO (Reference, Object)
+genObject path ref = do
+  objectString <- catObject path ref
+  case parse parseObject "" objectString of
+    Left pe -> do
+      putStrLn ("Couldn't find object " ++ ref ++ " in repo")
+      exitFailure
+    Right ob -> return (ref, ob)
+
+refsList :: RepoSummary -> [Reference]
+refsList = fmap hash . objectList
+
 main :: IO ()
 main = do
   args <- getArgs
@@ -71,9 +84,12 @@ main = do
            ) of
         Left _ -> putStrLn "Error generating list of all objects in repo"
         Right (summary, branches) -> do
-          let fullSummary = RepoSummary summary head branches
+          let fullSummary = RepoSummary summary (take (length head - 1) head) branches
           putStrLn ("Generating git object overview for repo \"" ++ repo ++ "\" in \"" ++ output ++ "\"")
           writeFile (output ++ "overview.html") (renderHtml (renderSummary fullSummary))
           writeFile (output ++ "style.css") style
+          objects <- mapM (genObject repo) (refsList fullSummary)
+          genGraph fullSummary objects (output ++ "graph.dot")
+          createProcess (proc "dot" ["-Gmodel=subset", "-Goverlap=false", "-Kneato", "-Tpng", "-o", output ++ "graph.png", output ++ "graph.dot"])
           mapM_ (printObjectFromSummary repo) summary
           putStrLn ("Generation complete. Look at \"" ++ output ++ "overview.html\" for the overview of the repo.")
